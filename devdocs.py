@@ -44,7 +44,21 @@ class DevDocs(kp.Plugin):
     # FIXME Should be removed
     _debug = True
 
+    CONFIG_SECTION_MAIN = "main"
+    CONFIG_SECTION_ENV = "env"
+
+    SUPPORTED_CACHE_METHOD = ["onstart", "off"]
+    SUPPORTED_TITLE_LEVEL = ["firstlevel", "secondlevel"]
+    SUPPORTED_COPY_FROM_CLIPBOARD = False
+
     DEFAULT_ITEM_LABEL_FORMAT = "DevDocs"
+    DEFAULT_CACHE_METHOD = "onstart"
+    DEFAULT_CACHE_LEVEL = "firstlevel"
+    DEFAULT_COPY_FROM_CLIPBOARD = False
+    DEFAULT_COPY_FROM_CLIPBOARD_TO = "secondlevel"
+    DEFAULT_INCLUDE_DOCUMENTATION = []
+    DEFAULT_EXCLUDE_DOCUMENTATION = []
+
     ITEMCAT_RESULT = kp.ItemCategory.USER_BASE + 1
 
     default_icon_handle = None
@@ -56,6 +70,8 @@ class DevDocs(kp.Plugin):
     def on_start(self):
         self.info("Loading DevDocs Package (Start Up)")
         self._setup_default_icon()
+        # Read configuration
+        self._load_config()
         # Set Actions
         # 1. Open URL in browser
         # 2. Open URL in browser using Incognito
@@ -63,20 +79,21 @@ class DevDocs(kp.Plugin):
                              self.create_action(
                                  name = "copy",
                                  label = "Copy",
-                                 short_desc = "Copy the name of the answer")])
+                                 short_desc = "Copy the name of the answer")
+                         ])
 
     def on_catalog(self):
         # Change to DevDocs Icon
-        # Read configuration
+        self._setup_default_icon()
         # Load up available documentation
-        self.info("catalog done...")
         self.set_catalog([self.create_item(
             category = kp.ItemCategory.KEYWORD,
-            label = "YesNo",
-            short_desc = "Say Yes or No",
-            target="yesno",
+            label = "DevDocs",
+            short_desc = "Search DevDocs API documentation(s)",
+            target="devdocs",
             args_hint = kp.ItemArgsHint.REQUIRED,
             hit_hint = kp.ItemHitHint.NOARGS)])
+        self.info("Catalog Done")
 
     def on_suggest(self, user_input, items_chain):
         if not items_chain or items_chain[-1].category() != kp.ItemCategory.KEYWORD:
@@ -131,14 +148,42 @@ class DevDocs(kp.Plugin):
     def _value_to_string(self, value):
         return "Yes" if value else "No"
 
+    # TODO: [For Future, another method] _load_icons(self)?
+    #       Should load *.png resources and store them for each language
+    #       Should also have a default icon for DevDocs.
+    # HINT: Can take icons from the freecodecamp devdocs repo
     def _setup_default_icon(self):
         if self.default_icon_handle:
             self.default_icon_handle.free()
             self.default_icon_handle = None
 
-        args = kpu.web_browser_command()
-        if args and os.path.isfile(args[0]):
-            self.default_icon_handle = self.load_icon("@{},0".format(args[0]))
-            if self.default_icon_handle:
-                self.set_default_icon(self.default_icon_handle)
+        ico_resource = "res://{}/devdocs.png".format(self.package_full_name())
+        self.default_icon_handle = self.load_icon(ico_resource)
+        if self.default_icon_handle:
+            self.set_default_icon(self.default_icon_handle)
+
+    def _load_config(self):
+        settings = self.load_settings()
+        cache_method: str = settings.get_stripped(
+            "cache_method",
+            section = self.CONFIG_SECTION_MAIN,
+            fallback = self.DEFAULT_CACHE_METHOD
+        )
+        cache_level: str = settings.get_stripped(
+            "cache_level",
+            section = self.CONFIG_SECTION_MAIN,
+            fallback = self.DEFAULT_CACHE_LEVEL
+        )
+        copy_from_clipboard: str = settings.get_bool(
+            "copy_from_clipboard",
+            section = self.CONFIG_SECTION_MAIN,
+            fallback = self.DEFAULT_COPY_FROM_CLIPBOARD
+        )
+
+        # LOGGING
+        self.dbg([
+                     cache_level,
+                     cache_method,
+                     copy_from_clipboard
+                 ])
 
