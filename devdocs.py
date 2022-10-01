@@ -41,7 +41,7 @@ class DevDocs(kp.Plugin):
     Catalog. Additional search sites can be added in package's configuration file.
     """
 
-    # FIXME Should be removed
+    # FIXME: Should be removed
     _debug = True
 
     CONFIG_SECTION_MAIN = "main"
@@ -98,6 +98,15 @@ class DevDocs(kp.Plugin):
     def on_suggest(self, user_input, items_chain):
         if not items_chain or items_chain[-1].category() != kp.ItemCategory.KEYWORD:
             return
+
+        self.dbg("user-input: {}".format(user_input));
+
+        for item in items_chain:
+            self.dbg("Listing Items Chain")
+            self.dbg([
+                         item.label(),
+                         item.short_desc()
+                     ])
 
         if not user_input:
             self.history = []
